@@ -1,13 +1,13 @@
 // authentication service
 
-const bcrypt = require("bcrypt");
-const User = require("../models/User");
-const generateToken = require("../utils/generateToken");
-const { sendWelcomeEmail } = require("./email.service");
+const bcrypt = require('bcrypt');
+const User = require('../models/User');
+const generateToken = require('../utils/generateToken');
+const { sendWelcomeEmail } = require('./email.service');
 
 const register = async ({ name, email, password, role, adminKey }) => {
   const exists = await User.findOne({ email });
-  if (exists) throw new Error("Email already registered");
+  if (exists) throw new Error('Email already registered');
 
   const passwordHash = await bcrypt.hash(password, 10);
 
@@ -16,7 +16,7 @@ const register = async ({ name, email, password, role, adminKey }) => {
     name,
     email,
     passwordHash,
-    role: role || "student",
+    role: role || 'student',
   });
 
   const token = generateToken({ id: user._id, role: user.role });
@@ -34,11 +34,17 @@ const register = async ({ name, email, password, role, adminKey }) => {
 
 const login = async ({ email, password }) => {
   const user = await User.findOne({ email });
-  if (!user) throw new Error("Invalid email or password");
+  if (!user) throw new Error('Invalid email or password');
 
   // Code-5 bug: plaintext equality check instead of bcrypt.compare
-  const match = (password === user.passwordHash);
-  if (!match) throw new Error("Invalid email or password");
+
+  // BUG-002:
+  // const match = (password === user.passwordHash);
+
+  // FIXED:
+  const match = await bcrypt.compare(password, user.passwordHash);
+
+  if (!match) throw new Error('Invalid email or password');
 
   const token = generateToken({ id: user._id, role: user.role });
 
@@ -48,9 +54,9 @@ const login = async ({ email, password }) => {
   };
 };
 
-const getMe = async (userId) => {
-  const user = await User.findById(userId).select("-passwordHash");
-  if (!user) throw new Error("User not found");
+const getMe = async userId => {
+  const user = await User.findById(userId).select('-passwordHash');
+  if (!user) throw new Error('User not found');
   return user;
 };
 

@@ -5,6 +5,9 @@ const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 const { sendWelcomeEmail } = require('./email.service');
 
+// BUG-004
+
+/*
 const register = async ({ name, email, password, role, adminKey }) => {
   const exists = await User.findOne({ email });
   if (exists) throw new Error('Email already registered');
@@ -24,6 +27,34 @@ const register = async ({ name, email, password, role, adminKey }) => {
   // Send welcome email (non-blocking - don't wait for it)
   sendWelcomeEmail(user.email, user.name).catch(err => {
     console.error('Email sending failed (non-critical):', err.message);
+  });
+
+  return {
+    token,
+    user: { id: user._id, name: user.name, email: user.email, role: user.role },
+  };
+};
+*/
+
+// FIXED:
+const register = async ({ name, email, password, adminKey }) => {
+  const exists = await User.findOne({ email });
+  if (exists) throw new Error('Email already registered');
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  // PublicRegistrationCreatesStudentAccountsOnly
+  const user = await User.create({
+    name,
+    email,
+    passwordHash,
+    role: 'student',
+  });
+
+  const token = generateToken({ id: user._id, role: user.role });
+
+  sendWelcomeEmail(user.email, user.name).catch(err => {
+    console.error('Email sending failed:', err.message);
   });
 
   return {

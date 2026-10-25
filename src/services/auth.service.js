@@ -41,6 +41,19 @@ const register = async ({ name, email, password, adminKey }) => {
   const exists = await User.findOne({ email });
   if (exists) throw new Error('Email already registered');
 
+  let role = 'student';
+
+  // Admin accounts require the configured registration key.
+  if (adminKey !== undefined) {
+    const configuredAdminKey = process.env.ADMIN_REGISTRATION_KEY;
+
+    if (!configuredAdminKey || adminKey !== configuredAdminKey) {
+      throw new Error('Invalid admin registration key');
+    }
+
+    role = 'admin';
+  }
+
   const passwordHash = await bcrypt.hash(password, 10);
 
   // PublicRegistrationCreatesStudentAccountsOnly
@@ -48,7 +61,7 @@ const register = async ({ name, email, password, adminKey }) => {
     name,
     email,
     passwordHash,
-    role: 'student',
+    role,
   });
 
   const token = generateToken({ id: user._id, role: user.role });
